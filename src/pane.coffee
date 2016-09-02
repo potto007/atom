@@ -4,6 +4,7 @@ Grim = require 'grim'
 Model = require './model'
 PaneAxis = require './pane-axis'
 TextEditor = require './text-editor'
+PaneItemMruSwitcher = require './pane-item-mru-switcher'
 
 # Extended: A container for presenting content in the center of the workspace.
 # Panes can contain multiple items, one of which is *active* at a given time.
@@ -49,6 +50,7 @@ class Pane extends Model
     @subscriptionsPerItem = new WeakMap
     @items = []
     @itemStack = []
+    @itemMruSwitcher = new PaneItemMruSwitcher(this)
 
     @addItems(compact(params?.items ? []))
     @setActiveItem(@items[0]) unless @getActiveItem()?
@@ -334,6 +336,7 @@ class Pane extends Model
       @itemStackIndex = @itemStack.length if @itemStackIndex is 0
       @itemStackIndex = @itemStackIndex - 1
       nextRecentlyUsedItem = @itemStack[@itemStackIndex]
+      @itemMruSwitcher.show()
       @setActiveItem(nextRecentlyUsedItem, modifyStack: false)
 
   # Makes the previous item in the itemStack active.
