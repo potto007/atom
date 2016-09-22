@@ -1,4 +1,5 @@
 {Emitter, CompositeDisposable} = require 'event-kit'
+selectorProcessor = require 'postcss-selector-parser'
 
 class StylesElement extends HTMLElement
   subscriptions: null
@@ -102,7 +103,22 @@ class StylesElement extends HTMLElement
         .replace(/\.editor([:.][^ ,>]+)/g, ':host($1)')
         .replace(/\.editor($|[ ,>])/g, ':host$1')
 
-      unless inputSelector is outputSelector
+      transformDeprecatedShadowSelectors = (selectors) ->
+        selectors.each (selector) ->
+          isSyntaxSelector = not selector.some((node) -> node.type is 'tag' and node.value is 'atom-text-editor')
+          previousNode = null
+          selector.each (node) ->
+            isShadowPseudoClass = node.type is 'pseudo' and node.value is '::shadow'
+            if isShadowPseudoClass and previousNode?.type is 'tag' and previousNode?.value is 'atom-text-editor'
+              selector.removeChild(node)
+            else
+              if isSyntaxSelector and node.type is 'class' and not node.value.startsWith('syntax--')
+                node.value = 'syntax--' + node.value
+              previousNode = node
+
+      outputSelector = selectorProcessor(transformDeprecatedShadowSelectors).process(outputSelector).result
+
+      if inputSelector isnt outputSelector
         rule.selectorText = outputSelector
         upgradedSelectors.push({inputSelector, outputSelector})
 

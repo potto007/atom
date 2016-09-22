@@ -83,6 +83,34 @@ describe "StylesElement", ->
       element.setAttribute('context', 'atom-text-editor')
       spyOn(console, 'warn')
 
+    it "removes the ::shadow pseudo-selector from atom-text-editor selectors", ->
+      atom.styles.addStyleSheet("""
+      atom-text-editor::shadow .class-1, atom-text-editor::shadow .class-2 { color: red; }
+      atom-text-editor::shadow > .class-3 { color: yellow; }
+      atom-text-editor .class-6 { color: blue; }
+      """, {context: 'atom-text-editor'})
+      expect(Array.from(element.firstChild.sheet.cssRules).map((r) -> r.selectorText)).toEqual([
+        'atom-text-editor .class-1, atom-text-editor .class-2',
+        'atom-text-editor > .class-3',
+        'atom-text-editor .class-6'
+      ])
+
+    it "prepends `--syntax` to all the class name selectors not matching atom-text-editor elements", ->
+      atom.styles.addStyleSheet("""
+      .class-1 { color: red; }
+      .class-2 > .class-3, .class-4.class-5 { color: green; }
+      .class-6 atom-text-editor .class-7 { color: yellow; }
+      atom-text-editor .class-8, .class-9 { color: blue; }
+      #id-1 { color: gray; }
+      """, {context: 'atom-text-editor'})
+      expect(Array.from(element.firstChild.sheet.cssRules).map((r) -> r.selectorText)).toEqual([
+        '.syntax--class-1',
+        '.syntax--class-2 > .syntax--class-3, .syntax--class-4.syntax--class-5',
+        '.class-6 atom-text-editor .class-7',
+        'atom-text-editor .class-8, .syntax--class-9'
+        '#id-1'
+      ])
+
     it "upgrades selectors containing .editor-colors", ->
       atom.styles.addStyleSheet(".editor-colors {background: black;}", context: 'atom-text-editor')
       expect(element.firstChild.sheet.cssRules[0].selectorText).toBe ':host'
